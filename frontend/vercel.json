@@ -2,19 +2,11 @@
   "version": 2,
   "routes": [
     {
-      "src": "/ticketpuller/(.*)",
-      "dest": "/ticketpuller/$1"
-    },
-    {
-      "src": "/ticketpuller",
-      "dest": "/ticketpuller/index.html"
-    },
-    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/ticketpuller/index.html"
+      "dest": "/index.html"
     }
   ]
 } 

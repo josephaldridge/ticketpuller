@@ -4,16 +4,51 @@ const cors = require('cors');
 const axios = require('axios');
 const fs = require('fs');
 const { format, utcToZonedTime } = require('date-fns-tz');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin using FIREBASE_SERVICE_ACCOUNT env variable
+admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+});
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://ticketpuller.vercel.app'
+];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
 
-// Test endpoint
+// Firebase Auth middleware
+function requireFirebaseAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const match = authHeader.match(/^Bearer (.+)$/);
+  if (!match) return res.status(401).json({ error: 'Unauthorized' });
+
+  const idToken = match[1];
+  admin.auth().verifyIdToken(idToken)
+    .then(decodedToken => {
+      req.user = decodedToken;
+      next();
+    })
+    .catch(() => res.status(401).json({ error: 'Unauthorized' }));
+}
+
+// Test endpoint (unprotected)
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
+});
+
+// Protect all /api routes except /api/test
+app.use((req, res, next) => {
+  if (req.path === '/api/test') return next();
+  if (req.path.startsWith('/api/')) return requireFirebaseAuth(req, res, next);
+  next();
 });
 
 // Get tickets endpoint
